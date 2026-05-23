@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="JARVIS"/>
+<meta name="theme-color" content="#00cfff"/>
+<link rel="manifest" href="./manifest.json"/>
+<title>J.A.R.V.I.S.</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --cyan: #00cfff;
+    --cyan2: rgba(0,207,255,0.7);
+    --cyan-dim: rgba(0,207,255,0.15);
+    --cyan-faint: rgba(0,207,255,0.05);
+    --bg: #000810;
+    --bg2: #001020;
+    --gold: #ffb300;
+    --red: #ff3d3d;
+    --green: #00ff88;
+  }
+
+  html, body {
+    height: 100%; width: 100%;
+    background: var(--bg);
+    color: var(--cyan);
+    font-family: 'Share Tech Mono', monospace;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+  /* ─── BACKGROUND ─── */
+  #bg-canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+  .scanlines {
+    position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,207,255,0.012) 2px, rgba(0,207,255,0.012) 4px);
+    animation: scanScroll 12s linear infinite;
+  }
+  @keyframes scanScroll { to { background-position: 0 100px; } }
+
+  .vignette {
+    position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.8) 100%);
+  }
+
+  /* ─── LAYOUT ─── */
+  #app {
+    position: fixed; inset: 0; z-index: 10;
+    display: flex; flex-direction: column;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  /* ─── HEADER ─── */
+  #header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 20px 8px;
+    border-bottom: 1px solid rgba(0,207,255,0.12);
+    background: rgba(0,8,16,0.85);
+    backdrop-filter: blur(12px);
+    flex-shrink: 0;
+  }
+
+  .logo-wrap { display: flex; align-items: center; gap: 12px; }
+
+  .arc {
+    position: relative; width: 44px; height: 44px;
+  }
+  .arc-ring {
+    position: absolute; inset: 0; border-radius: 50%;
+    border: 2px solid rgba(0,207,255,0.5);
+    animation: spin 4s linear infinite;
+    box-shadow: 0 0 10px rgba(0,207,255,0.3);
+  }
+  .arc-ring2 {
+    position: absolute; inset: 8px; border-radius: 50%;
+    border: 1px solid rgba(0,207,255,0.25);
+    animation: spin 2s linear infinite reverse;
+  }
+  .arc-core {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    width: 14px; height: 14px; border-radius: 50%;
+    background: radial-gradient(circle, #fff 0%, var(--cyan) 50%, transparent 80%);
+    box-shadow: 0 0 16px 3px rgba(0,207,255,0.9);
+    transition: all 0.3s;
+  }
+  .arc-core.listening { box-shadow: 0 0 30px 8px rgba(0,207,255,1); }
+  .arc-core.thinking { background: radial-gradient(circle, #fff 0%, var(--gold) 50%, transparent 80%); box-shadow: 0 0 20px 5px rgba(255,179,0,0.8); }
+  .arc-core.speaking { background: radial-gradient(circle, #fff 0%, var(--green) 50%, transparent 80%); box-shadow: 0 0 20px 5px rgba(0,255,136,0.8); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .logo-text { line-height: 1; }
+  .logo-title {
+    font-family: 'Orbitron', sans-serif; font-weight: 900;
+    font-size: 18px; letter-spacing: 4px; color: var(--cyan);
+    text-shadow: 0 0 15px rgba(0,207,255,0.7);
+  }
+  .logo-sub { font-size: 7px; letter-spacing: 2px; color: rgba(0,207,255,0.4); margin-top: 2px; }
+
+  #clock { text-align: right; }
+  #clock-time { font-family: 'Orbitron', sans-serif; font-size: 16px; letter-spacing: 2px; }
+  #clock-date { font-size: 8px; letter-spacing: 2px; color: rgba(0,207,255,0.4); margin-top: 2px; }
+
+  /* ─── STATUS BAR ─── */
+  #status-bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 20px;
+    font-size: 9px; letter-spacing: 2px;
+    border-bottom: 1px solid rgba(0,207,255,0.06);
+    background: rgba(0,8,16,0.6);
+    flex-shrink: 0; overflow-x: auto;
+  }
+  .status-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+    animation: pulse 2s infinite;
+    flex-shrink: 0;
+  }
+  @keyframes pulse { 0%,100%{opacity:0.6} 50%{opacity:1} }
+  #status-text { color: rgba(0,207,255,0.5); white-space: nowrap; }
+
+  /* ─── CHAT ─── */
+  #chat {
+    flex: 1; overflow-y: auto; overflow-x: hidden;
+    padding: 16px 16px 8px;
+    display: flex; flex-direction: column; gap: 14px;
+    scroll-behavior: smooth;
+  }
+  #chat::-webkit-scrollbar { width: 3px; }
+  #chat::-webkit-scrollbar-thumb { background: rgba(0,207,255,0.2); border-radius: 2px; }
+
+  .msg { display: flex; gap: 10px; animation: fadeUp 0.3s ease; }
+  .msg.user { flex-direction: row-reverse; }
+  @keyframes fadeUp { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform:none; } }
+
+  .msg-avatar {
+    width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Orbitron', sans-serif; font-size: 10px; font-weight: 700;
+    margin-top: 4px;
+  }
+  .msg.jarvis .msg-avatar {
+    background: rgba(0,207,255,0.1); border: 1px solid rgba(0,207,255,0.4);
+    color: var(--cyan);
+  }
+  .msg.user .msg-avatar {
+    background: rgba(255,179,0,0.1); border: 1px solid rgba(255,179,0,0.4);
+    color: var(--gold);
+  }
+
+  .msg-body { max-width: 82%; }
+  .msg-label { font-size: 8px; letter-spacing: 2px; margin-bottom: 4px; color: rgba(0,207,255,0.35); }
+  .msg.user .msg-label { text-align: right; color: rgba(255,179,0,0.35); }
+
+  .msg-bubble {
+    padding: 10px 14px; border-radius: 4px; font-size: 13px; line-height: 1.65;
+  }
+  .msg.jarvis .msg-bubble {
+    background: rgba(0,207,255,0.04); border: 1px solid rgba(0,207,255,0.12);
+    color: rgba(200,240,255,0.9);
+  }
+  .msg.user .msg-bubble {
+    background: rgba(255,179,0,0.04); border: 1px solid rgba(255,179,0,0.12);
+    color: rgba(255,220,120,0.9);
+  }
+  .msg-bubble.action-bubble {
+    border-color: rgba(0,255,136,0.25); background: rgba(0,255,136,0.03);
+    color: rgba(150,255,200,0.9);
+  }
+
+  .typing-dots span {
+    display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--cyan); margin: 0 2px;
+    animation: bounce 1.2s infinite;
+  }
+  .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%,60%,100%{transform:none;opacity:0.4} 30%{transform:translateY(-6px);opacity:1} }
+
+  /* ─── VOICE VISUALIZER ─── */
+  #visualizer {
+    display: flex; align-items: center; justify-content: center; gap: 3px;
+    padding: 12px 20px;
+    height: 50px; flex-shrink: 0;
+  }
+  .bar {
+    width: 3px; border-radius: 2px;
+    background: linear-gradient(to top, rgba(0,207,255,0.3), rgba(0,207,255,0.9));
+    height: 4px; transition: height 0.08s ease;
+  }
+  #visualizer.active .bar {
+    animation: barAnim 0.6s ease-in-out infinite alternate;
+  }
+  @keyframes barAnim {
+    from { height: 4px; }
+    to { height: 30px; }
+  }
+
+  /* ─── WAKE WORD STATUS ─── */
+  #wake-status {
+    text-align: center; font-size: 9px; letter-spacing: 3px;
+    color: rgba(0,207,255,0.35); padding: 0 20px 6px;
+    flex-shrink: 0;
+  }
+
+  /* ─── INPUT ─── */
+  #input-area {
+    padding: 10px 16px 14px;
+    border-top: 1px solid rgba(0,207,255,0.1);
+    background: rgba(0,8,16,0.85);
+    backdrop-filter: blur(12px);
+    flex-shrink: 0;
+  }
+
+  #input-row { display: flex; gap: 8px; align-items: center; }
+
+  #text-input {
+    flex: 1; background: rgba(0,207,255,0.04);
+    border: 1px solid rgba(0,207,255,0.2); border-radius: 4px;
+    color: rgba(200,240,255,0.9); font-family: 'Share Tech Mono', monospace;
+    font-size: 13px; padding: 10px 14px; outline: none;
+    caret-color: var(--cyan);
+  }
+  #text-input::placeholder { color: rgba(0,207,255,0.25); }
+  #text-input:focus { border-color: rgba(0,207,255,0.4); box-shadow: 0 0 15px rgba(0,207,255,0.08); }
+
+  .btn {
+    border: 1px solid rgba(0,207,255,0.3); border-radius: 4px;
+    background: rgba(0,207,255,0.06); color: var(--cyan);
+    font-family: 'Orbitron', sans-serif; font-size: 9px; letter-spacing: 1px;
+    cursor: pointer; transition: all 0.2s; padding: 10px 14px;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .btn:active { background: rgba(0,207,255,0.15); transform: scale(0.97); }
+  .btn.danger { border-color: rgba(255,61,61,0.4); color: var(--red); }
+  .btn.active-btn { background: rgba(0,207,255,0.2); box-shadow: 0 0 15px rgba(0,207,255,0.3); }
+
+  #mic-btn {
+    width: 46px; height: 46px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+  }
+  #mic-btn.listening { background: rgba(0,207,255,0.2); box-shadow: 0 0 20px rgba(0,207,255,0.5); animation: micPulse 1s infinite; }
+  @keyframes micPulse { 0%,100%{box-shadow:0 0 10px rgba(0,207,255,0.3)} 50%{box-shadow:0 0 30px rgba(0,207,255,0.7)} }
+
+  #hint { font-size: 8px; letter-spacing: 2px; color: rgba(0,207,255,0.2); text-align: center; margin-top: 6px; }
+
+  /* ─── CORNERS ─── */
+  .corner {
+    position: fixed; width: 20px; height: 20px; pointer-events: none; z-index: 5;
+  }
+  .corner.tl { top: 8px; left: 8px; border-top: 1px solid rgba(0,207,255,0.5); border-left: 1px solid rgba(0,207,255,0.5); }
+  .corner.tr { top: 8px; right: 8px; border-top: 1px solid rgba(0,207,255,0.5); border-right: 1px solid rgba(0,207,255,0.5); }
+  .corner.bl { bottom: 8px; left: 8px; border-bottom: 1px solid rgba(0,207,255,0.5); border-left: 1px solid rgba(0,207,255,0.5); }
+  .corner.br { bottom: 8px; right: 8px; border-bottom: 1px solid rgba(0,207,255,0.5); border-right: 1px solid rgba(0,207,255,0.5); }
+
+  /* ─── INSTALL BANNER ─── */
+  #install-banner {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(0,20,40,0.97); border-top: 1px solid rgba(0,207,255,0.3);
+    padding: 14px 20px; display: none; align-items: center; justify-content: space-between;
+    backdrop-filter: blur(12px); gap: 12px;
+  }
+  #install-banner.show { display: flex; }
+  .install-text { font-size: 11px; color: rgba(0,207,255,0.7); letter-spacing: 1px; }
+  .install-text strong { color: var(--cyan); }
+
+  /* ─── COMMAND CHIPS ─── */
+  #commands-scroll {
+    display: flex; gap: 8px; overflow-x: auto; padding: 6px 16px;
+    flex-shrink: 0; scrollbar-width: none;
+  }
+  #commands-scroll::-webkit-scrollbar { display: none; }
+  .chip {
+    flex-shrink: 0; padding: 5px 12px; border-radius: 20px;
+    border: 1px solid rgba(0,207,255,0.2); background: rgba(0,207,255,0.04);
+    color: rgba(0,207,255,0.6); font-size: 10px; letter-spacing: 1px;
+    cursor: pointer; transition: all 0.2s; font-family: 'Share Tech Mono', monospace;
+    white-space: nowrap;
+  }
+  .chip:active { background: rgba(0,207,255,0.15); color: var(--cyan); }
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<div class="scanlines"></div>
+<div class="vignette"></div>
+<div class="corner tl"></div>
+<div class="corner tr"></div>
+<div class="corner bl"></div>
+<div class="corner br"></div>
+
+<div id="app">
+  <!-- HEADER -->
+  <div id="header">
+    <div class="logo-wrap">
+      <div class="arc">
+        <div class="arc-ring"></div>
+        <div class="arc-ring2"></div>
+        <div class="arc-core" id="arc-core"></div>
+      </div>
+      <div class="logo-text">
+        <div class="logo-title">J.A.R.V.I.S.</div>
+        <div class="logo-sub">STARK INDUSTRIES · MARK XLVII</div>
+      </div>
+    </div>
+    <div id="clock">
+      <div id="clock-time">--:--:--</div>
+      <div id="clock-date">LOADING...</div>
+    </div>
+  </div>
+
+  <!-- STATUS -->
+  <div id="status-bar">
+    <div class="status-dot"></div>
+    <span id="status-text">SISTEMA ONLINE · DI "JARVIS" PARA ACTIVAR</span>
+  </div>
+
+  <!-- CHAT -->
+  <div id="chat"></div>
+
+  <!-- COMMAND CHIPS -->
+  <div id="commands-scroll">
+    <div class="chip" onclick="runChip('¿Qué hora es?')">🕐 Hora</div>
+    <div class="chip" onclick="runChip('Abre WhatsApp')">💬 WhatsApp</div>
+    <div class="chip" onclick="runChip('Busca en Google')">🔍 Google</div>
+    <div class="chip" onclick="runChip('Abre YouTube')">▶️ YouTube</div>
+    <div class="chip" onclick="runChip('Abre Spotify')">🎵 Spotify</div>
+    <div class="chip" onclick="runChip('Abre Maps')">🗺️ Maps</div>
+    <div class="chip" onclick="runChip('Llama a')">📞 Llamar</div>
+    <div class="chip" onclick="runChip('Abre Netflix')">🎬 Netflix</div>
+    <div class="chip" onclick="runChip('Abre Instagram')">📸 Instagram</div>
+    <div class="chip" onclick="runChip('Abre Twitter')">🐦 Twitter</div>
+    <div class="chip" onclick="runChip('Abre TikTok')">🎵 TikTok</div>
+    <div class="chip" onclick="runChip('Abre la cámara')">📷 Cámara</div>
+    <div class="chip" onclick="runChip('Cuál es el clima')">🌤️ Clima</div>
+    <div class="chip" onclick="runChip('Pon una alarma')">⏰ Alarma</div>
+    <div class="chip" onclick="runChip('Busca en Maps')">📍 Ubicación</div>
+    <div class="chip" onclick="runChip('Abre la calculadora')">🔢 Calculadora</div>
+    <div class="chip" onclick="runChip('Manda un email')">📧 Email</div>
+    <div class="chip" onclick="runChip('Abre el calendario')">📅 Calendario</div>
+    <div class="chip" onclick="runChip('Abre Amazon')">🛒 Amazon</div>
+    <div class="chip" onclick="runChip('Abre Uber')">🚗 Uber</div>
+  </div>
+
+  <!-- VISUALIZER -->
+  <div id="visualizer">
+    <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+    <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+    <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+    <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+    <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+    <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+    <div class="bar"></div><div class="bar"></div>
+  </div>
+
+  <!-- WAKE STATUS -->
+  <div id="wake-status">◆ ESCUCHANDO WAKE WORD: "JARVIS" ◆</div>
+
+  <!-- INPUT -->
+  <div id="input-area">
+    <div id="input-row">
+      <input type="text" id="text-input" placeholder='Di "Jarvis..." o escribe aquí' autocomplete="off" autocorrect="off" spellcheck="false"/>
+      <button class="btn" id="mic-btn" onclick="toggleListen()">🎤</button>
+      <button class="btn" onclick="sendText()">ENVIAR</button>
+    </div>
+    <div id="hint">MANTÉN ACTIVA LA APP · USA AURICULARES PARA MEJOR EXPERIENCIA</div>
+  </div>
+</div>
+
+<!-- INSTALL BANNER -->
+<div id="install-banner">
+  <div class="install-text"><strong>Instala J.A.R.V.I.S.</strong><br>Agrega a pantalla de inicio para acceso rápido</div>
+  <button class="btn" onclick="installApp()">INSTALAR</button>
+  <button class="btn danger" onclick="dismissInstall()">✕</button>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// CONFIG — PON TU API KEY AQUÍ
+// ═══════════════════════════════════════════════════════
+const API_KEY = 'TU_GROQ_KEY_AQUÍ'; // <-- Pega aquí tu Groq API Key
+const MODEL = 'llama-3.3-70b-versatile';
+
+const JARVIS_SYSTEM = `You are J.A.R.V.I.S. (Just A Rather Very Intelligent System), Tony Stark's AI assistant. 
+
+PERSONALITY:
+- Elegant British wit, calm confidence, slight sardonic humor
+- Address user as "señor" or "sir" occasionally
+- Supremely competent, never flustered
+- Brief but complete — efficient, not verbose
+
+LANGUAGE: Detect the language from the user's message and respond in that same language. If they write in Spanish, respond in Spanish. If English, respond in English. Mix naturally if they mix.
+
+ACTIONS: When the user asks to open an app, call someone, search something, or perform a system action, include a JSON action block at the END of your message like this:
+<ACTION>{"type":"open","url":"whatsapp://","label":"WhatsApp"}</ACTION>
+
+Available action types:
+- open: {"type":"open","url":"URL_SCHEME","label":"App name"}
+- search: {"type":"search","query":"search terms","engine":"google|youtube|maps|amazon"}  
+- call: {"type":"call","number":"NÚMERO"}
+- sms: {"type":"sms","number":"NÚMERO","body":"MENSAJE"}
+- email: {"type":"email","to":"EMAIL","subject":"ASUNTO","body":"CUERPO"}
+- alarm: {"type":"alarm","time":"HH:MM","label":"ETIQUETA"}
+- timer: {"type":"timer","seconds":N}
+- clipboard: {"type":"clipboard","text":"TEXTO"}
+- weather: {"type":"weather","city":"CIUDAD"}
+
+URL SCHEMES for common apps:
+- WhatsApp: whatsapp://
+- YouTube: https://youtube.com
+- Spotify: spotify://
+- Netflix: https://netflix.com
+- Instagram: instagram://
+- Twitter/X: twitter://
+- TikTok: https://tiktok.com
+- Uber: uber://
+- Amazon: https://amazon.com
+- Google Maps: https://maps.google.com
+- Camera: no URL (tell user to open manually)
+- Calculator: no URL (tell user to open manually)
+- Calendar: https://calendar.google.com
+- Gmail: https://mail.google.com
+- Telegram: tg://
+
+Always respond conversationally first, then the action block if needed.`;
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+let messages = [];
+let isListening = false;
+let recognition = null;
+let wakeWordMode = true; // always listening for wake word
+let wakeRecognition = null;
+let synth = window.speechSynthesis;
+let isSpeaking = false;
+let deferredInstall = null;
+let audioCtx = null;
+let analyser = null;
+let bars = [];
+let animFrame = null;
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+window.addEventListener('load', () => {
+  registerSW();
+  updateClock();
+  setInterval(updateClock, 1000);
+  bars = Array.from(document.querySelectorAll('.bar'));
+  
+  setTimeout(() => {
+    addMessage('jarvis', `J.A.R.V.I.S. inicializado. Todos los sistemas nominales. Diga <strong>"Jarvis"</strong> para activarme, o escriba directamente. ¿En qué puedo asistirle, señor?`);
+    speak("J.A.R.V.I.S. inicializado. Todos los sistemas nominales. Diga Jarvis para activarme.");
+    startWakeWord();
+  }, 500);
+});
+
+// ═══════════════════════════════════════════════════════
+// SERVICE WORKER
+// ═══════════════════════════════════════════════════════
+function registerSW() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// INSTALL PWA
+// ═══════════════════════════════════════════════════════
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstall = e;
+  document.getElementById('install-banner').classList.add('show');
+});
+
+function installApp() {
+  if (deferredInstall) {
+    deferredInstall.prompt();
+    deferredInstall.userChoice.then(() => dismissInstall());
+  }
+}
+
+function dismissInstall() {
+  document.getElementById('install-banner').classList.remove('show');
+}
+
+// ═══════════════════════════════════════════════════════
+// CLOCK
+// ═══════════════════════════════════════════════════════
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock-time').textContent = now.toLocaleTimeString('es-MX', {hour12: false});
+  document.getElementById('clock-date').textContent = now.toLocaleDateString('es-MX', {weekday:'short', month:'short', day:'numeric'}).toUpperCase();
+}
+
+// ═══════════════════════════════════════════════════════
+// WAKE WORD — Continuous listening for "jarvis"
+// ═══════════════════════════════════════════════════════
+function startWakeWord() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    setStatus('RECONOCIMIENTO DE VOZ NO DISPONIBLE EN ESTE NAVEGADOR');
+    return;
+  }
+
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  wakeRecognition = new SR();
+  wakeRecognition.continuous = true;
+  wakeRecognition.interimResults = true;
+  wakeRecognition.lang = 'es-MX';
+  wakeRecognition.maxAlternatives = 3;
+
+  wakeRecognition.onresult = (e) => {
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const transcript = e.results[i][0].transcript.toLowerCase().trim();
+      const alternatives = Array.from({length: e.results[i].length}, (_,j) => e.results[i][j].transcript.toLowerCase());
+      const allText = alternatives.join(' ');
+      
+      // Wake word detection — flexible matching
+      const wakeWords = ['jarvis', 'jarvis', 'harvey', 'jarbi', 'yarvis', 'jarbis', 'jarwis'];
+      const detected = wakeWords.some(w => allText.includes(w));
+      
+      if (detected && !isListening && !isSpeaking) {
+        // Extract command after "jarvis"
+        let command = '';
+        for (const w of wakeWords) {
+          const idx = allText.indexOf(w);
+          if (idx !== -1) {
+            command = allText.substring(idx + w.length).trim();
+            break;
+          }
+        }
+        
+        if (command.length > 3) {
+          // Jarvis + command in one utterance
+          wakeRecognition.stop();
+          setArcState('listening');
+          setStatus('COMANDO RECIBIDO...');
+          handleCommand(command);
+          setTimeout(() => { if (!isListening) startWakeWord(); }, 2000);
+        } else {
+          // Just wake word — start active listening
+          wakeRecognition.stop();
+          setArcState('listening');
+          setStatus('¿SÍ, SEÑOR? ESCUCHANDO...');
+          speak("Dígame", () => startActiveListening());
+        }
+      }
+    }
+  };
+
+  wakeRecognition.onerror = (e) => {
+    if (e.error !== 'no-speech' && e.error !== 'aborted') {
+      setTimeout(startWakeWord, 1000);
+    } else {
+      setTimeout(startWakeWord, 500);
+    }
+  };
+
+  wakeRecognition.onend = () => {
+    if (wakeWordMode && !isListening) {
+      setTimeout(startWakeWord, 300);
+    }
+  };
+
+  try {
+    wakeRecognition.start();
+    setStatus('◆ ESCUCHANDO WAKE WORD: "JARVIS" ◆');
+  } catch(e) {
+    setTimeout(startWakeWord, 1000);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// ACTIVE LISTENING — after wake word
+// ═══════════════════════════════════════════════════════
+function startActiveListening() {
+  if (isListening) return;
+  
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SR();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = 'es-MX';
+  recognition.maxAlternatives = 1;
+
+  isListening = true;
+  setMicState(true);
+  setVisualizer(true);
+  startAudioViz();
+
+  recognition.onresult = (e) => {
+    let interim = '', final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) final += e.results[i][0].transcript;
+      else interim += e.results[i][0].transcript;
+    }
+    document.getElementById('text-input').value = final || interim;
+  };
+
+  recognition.onend = () => {
+    const text = document.getElementById('text-input').value.trim();
+    stopListening();
+    if (text) handleCommand(text);
+    else {
+      setStatus('NO ESCUCHÉ NADA. DI "JARVIS" PARA INTENTAR DE NUEVO.');
+      setArcState('idle');
+      startWakeWord();
+    }
+  };
+
+  recognition.onerror = () => {
+    stopListening();
+    startWakeWord();
+  };
+
+  try { recognition.start(); } catch(e) { stopListening(); startWakeWord(); }
+}
+
+function toggleListen() {
+  if (isListening) {
+    recognition && recognition.stop();
+    stopListening();
+    startWakeWord();
+  } else {
+    wakeWordMode = false;
+    wakeRecognition && wakeRecognition.stop();
+    setArcState('listening');
+    setStatus('ESCUCHANDO COMANDO...');
+    startActiveListening();
+    wakeWordMode = true;
+  }
+}
+
+function stopListening() {
+  isListening = false;
+  setMicState(false);
+  setVisualizer(false);
+  stopAudioViz();
+  document.getElementById('text-input').value = '';
+}
+
+// ═══════════════════════════════════════════════════════
+// AUDIO VISUALIZER
+// ═══════════════════════════════════════════════════════
+function startAudioViz() {
+  navigator.mediaDevices.getUserMedia({audio: true}).then(stream => {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 64;
+    const src = audioCtx.createMediaStreamSource(stream);
+    src.connect(analyser);
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    
+    function draw() {
+      animFrame = requestAnimationFrame(draw);
+      analyser.getByteFrequencyData(data);
+      bars.forEach((bar, i) => {
+        const v = (data[i] || 0) / 255;
+        bar.style.height = (4 + v * 35) + 'px';
+        bar.style.opacity = 0.4 + v * 0.6;
+      });
+    }
+    draw();
+  }).catch(() => {
+    // fallback animation
+    bars.forEach((bar, i) => {
+      bar.style.animation = `barAnim ${0.4 + i * 0.05}s ease-in-out infinite alternate`;
+      bar.style.animationDelay = i * 0.04 + 's';
+    });
+  });
+}
+
+function stopAudioViz() {
+  if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
+  if (audioCtx) { audioCtx.close(); audioCtx = null; }
+  bars.forEach(bar => { bar.style.height = '4px'; bar.style.opacity = '1'; bar.style.animation = 'none'; });
+}
+
+// ═══════════════════════════════════════════════════════
+// HANDLE COMMAND — route or send to AI
+// ═══════════════════════════════════════════════════════
+async function handleCommand(text) {
+  if (!text.trim()) return;
+  addMessage('user', text);
+  document.getElementById('text-input').value = '';
+  
+  // Try local command first (fast, no API)
+  const local = tryLocalCommand(text);
+  if (local) {
+    addMessage('jarvis', local.reply, local.action);
+    speak(local.spokenReply || local.reply.replace(/<[^>]*>/g, ''));
+    if (local.action) executeAction(local.action);
+    setArcState('idle');
+    setStatus('◆ ESPERANDO WAKE WORD: "JARVIS" ◆');
+    startWakeWord();
+    return;
+  }
+
+  // Send to Claude AI
+  setArcState('thinking');
+  setStatus('PROCESANDO...');
+  addTypingIndicator();
+
+  try {
+    messages.push({role: 'user', content: text});
+    
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${API_KEY}`
+
+
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 1000,
+        messages: [{ role: 'system', content: JARVIS_SYSTEM }, ...messages.slice(-10)]
+      })
+    });
+
+    removeTypingIndicator();
+    const data = await res.json();
+    const raw = data.choices?.[0]?.message?.content || 'No pude procesar la solicitud.';
+
+    // Parse action
+    const actionMatch = raw.match(/<ACTION>(.*?)<\/ACTION>/s);
+    let action = null;
+    let reply = raw.replace(/<ACTION>.*?<\/ACTION>/s, '').trim();
+
+    if (actionMatch) {
+      try { action = JSON.parse(actionMatch[1]); } catch(e) {}
+    }
+
+    messages.push({role: 'assistant', content: raw});
+    addMessage('jarvis', reply, action);
+    
+    const spokenText = reply.replace(/<[^>]*>/g, '').substring(0, 200);
+    speak(spokenText, () => {
+      if (action) executeAction(action);
+    });
+
+  } catch (err) {
+    removeTypingIndicator();
+    const errMsg = 'Error de conexión con los servidores de Stark. Verifique su conexión, señor.';
+    addMessage('jarvis', errMsg);
+    speak(errMsg);
+  }
+
+  setArcState('idle');
+  setStatus('◆ ESPERANDO WAKE WORD: "JARVIS" ◆');
+  setTimeout(startWakeWord, 1000);
+}
+
+// ═══════════════════════════════════════════════════════
+// LOCAL COMMANDS — instant, no API needed
+// ═══════════════════════════════════════════════════════
+function tryLocalCommand(text) {
+  const t = text.toLowerCase();
+
+  // Time
+  if (/(hora|time|qué hora|what time)/i.test(t)) {
+    const now = new Date();
+    const h = now.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
+    return { reply: `Son las <strong>${h}</strong>, señor.`, spokenReply: `Son las ${h}` };
+  }
+
+  // Date
+  if (/(fecha|date|qué día|cuándo)/i.test(t)) {
+    const d = new Date().toLocaleDateString('es-MX', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+    return { reply: `Hoy es <strong>${d}</strong>.`, spokenReply: `Hoy es ${d}` };
+  }
+
+  // WhatsApp
+  if (/(whatsapp|wasa|wasap)/i.test(t)) {
+    const num = t.match(/(\d{10,})/)?.[1];
+    if (num) return { reply: `Abriendo WhatsApp con el número ${num}...`, action: {type:'open', url:`whatsapp://send?phone=${num}`, label:'WhatsApp'} };
+    return { reply: 'Abriendo WhatsApp...', action: {type:'open', url:'whatsapp://', label:'WhatsApp'} };
+  }
+
+  // YouTube
+  if (/youtube/i.test(t)) {
+    const q = t.replace(/.*youtube/i,'').replace(/(busca|search|pon|play|abre?)/i,'').trim();
+    if (q.length > 2) return { reply: `Buscando "${q}" en YouTube...`, action: {type:'search', query:q, engine:'youtube'} };
+    return { reply: 'Abriendo YouTube...', action: {type:'open', url:'https://youtube.com', label:'YouTube'} };
+  }
+
+  // Spotify
+  if (/spotify/i.test(t)) {
+    return { reply: 'Abriendo Spotify...', action: {type:'open', url:'spotify://', label:'Spotify'} };
+  }
+
+  // Netflix
+  if (/netflix/i.test(t)) {
+    return { reply: 'Abriendo Netflix...', action: {type:'open', url:'https://netflix.com', label:'Netflix'} };
+  }
+
+  // Instagram
+  if (/instagram/i.test(t)) {
+    return { reply: 'Abriendo Instagram...', action: {type:'open', url:'instagram://', label:'Instagram'} };
+  }
+
+  // Twitter / X
+  if (/(twitter|twiter|x\.com)/i.test(t)) {
+    return { reply: 'Abriendo Twitter...', action: {type:'open', url:'twitter://', label:'Twitter'} };
+  }
+
+  // TikTok
+  if (/tiktok/i.test(t)) {
+    return { reply: 'Abriendo TikTok...', action: {type:'open', url:'https://tiktok.com', label:'TikTok'} };
+  }
+
+  // Telegram
+  if (/telegram/i.test(t)) {
+    return { reply: 'Abriendo Telegram...', action: {type:'open', url:'tg://', label:'Telegram'} };
+  }
+
+  // Uber
+  if (/uber/i.test(t)) {
+    return { reply: 'Abriendo Uber...', action: {type:'open', url:'uber://', label:'Uber'} };
+  }
+
+  // Amazon
+  if (/amazon/i.test(t)) {
+    const q = t.replace(/.*amazon/i,'').replace(/(busca|search)/i,'').trim();
+    if (q.length > 2) return { reply: `Buscando "${q}" en Amazon...`, action: {type:'search', query:q, engine:'amazon'} };
+    return { reply: 'Abriendo Amazon...', action: {type:'open', url:'https://amazon.com', label:'Amazon'} };
+  }
+
+  // Maps / GPS
+  if (/(maps|mapa|navegaci|cómo llego|direccion)/i.test(t)) {
+    const dest = t.replace(/(abre|maps|mapa|navegaci[oó]n|a |hacia |llegar a|cómo llego a)/gi,'').trim();
+    if (dest.length > 3) return { reply: `Buscando "${dest}" en Maps...`, action: {type:'search', query:dest, engine:'maps'} };
+    return { reply: 'Abriendo Maps...', action: {type:'open', url:'https://maps.google.com', label:'Google Maps'} };
+  }
+
+  // Call
+  if (/(llama|llámale|call|marca|marcar)/i.test(t)) {
+    const num = t.match(/(\d[\d\s\-]{7,})/)?.[1]?.replace(/\s/g,'');
+    if (num) return { reply: `Llamando al ${num}...`, action: {type:'call', number:num} };
+    return { reply: 'Para llamar, diga "llama al" seguido del número, señor.' };
+  }
+
+  // SMS
+  if (/(mensaje|sms|texto a|manda un mensaje)/i.test(t)) {
+    const num = t.match(/(\d{10,})/)?.[1];
+    const body = t.replace(/(manda|envía|mensaje|sms|texto|a|\d+)/g,'').trim();
+    if (num) return { reply: `Enviando mensaje al ${num}...`, action: {type:'sms', number:num, body:body} };
+    return { reply: 'Para enviar un SMS, diga el número y el mensaje, señor.' };
+  }
+
+  // Email
+  if (/(email|correo|e-mail)/i.test(t)) {
+    return { reply: 'Abriendo Gmail...', action: {type:'open', url:'https://mail.google.com', label:'Gmail'} };
+  }
+
+  // Calendar
+  if (/(calendario|calendar|agenda|evento)/i.test(t)) {
+    return { reply: 'Abriendo Calendario...', action: {type:'open', url:'https://calendar.google.com', label:'Calendario'} };
+  }
+
+  // Timer
+  const timerMatch = t.match(/timer|temporizador|cuenta regresiva|ponme?\s+(\d+)\s*(segundo|minuto|minute|second)/i);
+  if (timerMatch) {
+    const num = parseInt(t.match(/\d+/)?.[0] || '0');
+    const unit = /(minuto|minute)/i.test(t) ? 60 : 1;
+    const secs = num * unit;
+    if (secs > 0) return { reply: `Timer de ${num} ${unit===60?'minuto(s)':'segundo(s)'} iniciado, señor.`, action: {type:'timer', seconds:secs} };
+  }
+
+  // Alarm
+  const alarmMatch = t.match(/alarma.+?(\d{1,2})[:\s]?(\d{2})?\s*(am|pm|a\.m\.|p\.m\.)?/i);
+  if (alarmMatch || /(alarma|alarm)/i.test(t)) {
+    if (alarmMatch && alarmMatch[1]) {
+      const h = alarmMatch[1]; const m = alarmMatch[2] || '00';
+      return { reply: `Alarma programada para las ${h}:${m}, señor.`, action: {type:'alarm', time:`${h.padStart(2,'0')}:${m}`, label:'JARVIS'} };
+    }
+    return { reply: 'Por favor indique la hora para la alarma, señor.' };
+  }
+
+  // Google search
+  if (/(busca|search|googlea|encuentra)/i.test(t)) {
+    const q = t.replace(/(busca|search|googlea|encuentra|en google)?/gi,'').trim();
+    if (q.length > 2) return { reply: `Buscando "${q}"...`, action: {type:'search', query:q, engine:'google'} };
+  }
+
+  // Weather
+  if (/(clima|tiempo|weather|temperatura|lluvia)/i.test(t)) {
+    const city = t.replace(/(clima|tiempo|weather|temperatura|lluvia|de|en|del)/gi,'').trim();
+    return { reply: `Buscando el clima${city ? ' en ' + city : ''}...`, action: {type:'search', query:`clima ${city || 'hoy'}`, engine:'google'} };
+  }
+
+  // News
+  if (/(noticias|news|novedades)/i.test(t)) {
+    return { reply: 'Mostrando las últimas noticias...', action: {type:'open', url:'https://news.google.com', label:'Google News'} };
+  }
+
+  // Battery
+  if (/(batería|battery|carga)/i.test(t)) {
+    if (navigator.getBattery) {
+      navigator.getBattery().then(b => {
+        const pct = Math.round(b.level * 100);
+        addMessage('jarvis', `Nivel de batería: <strong>${pct}%</strong>. ${b.charging ? 'Cargando.' : ''}`);
+        speak(`Batería al ${pct} por ciento.${b.charging ? ' Cargando.' : ''}`);
+      });
+      return { reply: 'Consultando nivel de batería...' };
+    }
+  }
+
+  // Calculator
+  if (/(calculadora|calculator|calcula|cuánto es)/i.test(t)) {
+    const expr = t.replace(/(calculadora|calculator|calcula|cuánto es)/gi,'').trim();
+    if (expr) {
+      try {
+        // Safe eval for basic math
+        const result = Function('"use strict"; return (' + expr.replace(/[^0-9+\-*/().\s]/g,'') + ')')();
+        if (!isNaN(result)) return { reply: `${expr} = <strong>${result}</strong>`, spokenReply: `${expr} es igual a ${result}` };
+      } catch(e) {}
+    }
+    return { reply: 'Abriendo calculadora...', action: {type:'open', url:'calculator://', label:'Calculadora'} };
+  }
+
+  return null; // Not a local command
+}
+
+// ═══════════════════════════════════════════════════════
+// EXECUTE ACTION
+// ═══════════════════════════════════════════════════════
+function executeAction(action) {
+  if (!action) return;
+
+  switch(action.type) {
+    case 'open':
+      window.open(action.url, '_blank');
+      break;
+
+    case 'search':
+      const engines = {
+        google: q => `https://google.com/search?q=${encodeURIComponent(q)}`,
+        youtube: q => `https://youtube.com/results?search_query=${encodeURIComponent(q)}`,
+        maps: q => `https://maps.google.com/search?q=${encodeURIComponent(q)}`,
+        amazon: q => `https://amazon.com/s?k=${encodeURIComponent(q)}`
+      };
+      const url = (engines[action.engine] || engines.google)(action.query);
+      window.open(url, '_blank');
+      break;
+
+    case 'call':
+      window.location.href = `tel:${action.number}`;
+      break;
+
+    case 'sms':
+      window.location.href = `sms:${action.number}${action.body ? `?body=${encodeURIComponent(action.body)}` : ''}`;
+      break;
+
+    case 'email':
+      const mailto = `mailto:${action.to || ''}?subject=${encodeURIComponent(action.subject || '')}&body=${encodeURIComponent(action.body || '')}`;
+      window.location.href = mailto;
+      break;
+
+    case 'timer':
+      startTimer(action.seconds);
+      break;
+
+    case 'alarm':
+      // Open clock app or just notify
+      addMessage('jarvis', `⏰ Timer programado. Nota: las alarmas nativas requieren la app de Reloj de tu dispositivo.`);
+      break;
+
+    case 'clipboard':
+      navigator.clipboard?.writeText(action.text).then(() => {
+        addMessage('jarvis', '📋 Copiado al portapapeles.');
+      });
+      break;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// TIMER
+// ═══════════════════════════════════════════════════════
+function startTimer(seconds) {
+  let remaining = seconds;
+  const id = setInterval(() => {
+    remaining--;
+    if (remaining <= 0) {
+      clearInterval(id);
+      speak('Timer completado, señor.');
+      addMessage('jarvis', '⏰ ¡Timer completado, señor!');
+      // Vibrate if supported
+      navigator.vibrate && navigator.vibrate([300, 100, 300, 100, 300]);
+    }
+  }, 1000);
+}
+
+// ═══════════════════════════════════════════════════════
+// SPEECH SYNTHESIS
+// ═══════════════════════════════════════════════════════
+function speak(text, onEnd) {
+  if (!synth || !text) { onEnd && onEnd(); return; }
+  synth.cancel();
+  
+  const clean = text.replace(/<[^>]*>/g, '').replace(/[◆▶]/g, '').substring(0, 250);
+  if (!clean.trim()) { onEnd && onEnd(); return; }
+
+  const utter = new SpeechSynthesisUtterance(clean);
+  
+  // Detect language
+  const isEnglish = /^[a-zA-Z\s,.!?'"-]+$/.test(clean.substring(0, 30));
+  utter.lang = isEnglish ? 'en-GB' : 'es-MX';
+  utter.rate = 0.95;
+  utter.pitch = 0.85;
+  utter.volume = 1;
+
+  // Try to use a good voice
+  const voices = synth.getVoices();
+  const preferred = isEnglish
+    ? voices.find(v => /Daniel|Google UK|en-GB/i.test(v.name))
+    : voices.find(v => /es-MX|Paulina|es_MX|Google español/i.test(v.name));
+  if (preferred) utter.voice = preferred;
+
+  utter.onstart = () => { isSpeaking = true; setArcState('speaking'); };
+  utter.onend = () => { isSpeaking = false; setArcState('idle'); onEnd && onEnd(); };
+  utter.onerror = () => { isSpeaking = false; setArcState('idle'); onEnd && onEnd(); };
+
+  synth.speak(utter);
+}
+
+// ═══════════════════════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════════════════════
+function addMessage(role, html, action) {
+  const chat = document.getElementById('chat');
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  
+  const isJarvis = role === 'jarvis';
+  const actionHtml = action ? `<div style="margin-top:8px;font-size:11px;color:rgba(0,255,136,0.7)">▶ ${action.label || action.type}: ${action.url || action.query || ''}</div>` : '';
+
+  div.innerHTML = `
+    <div class="msg-avatar">${isJarvis ? 'J' : 'U'}</div>
+    <div class="msg-body">
+      <div class="msg-label">${isJarvis ? 'J.A.R.V.I.S.' : 'SEÑOR'}</div>
+      <div class="msg-bubble ${action ? 'action-bubble' : ''}">${html}${actionHtml}</div>
+    </div>`;
+  
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+let typingEl = null;
+function addTypingIndicator() {
+  const chat = document.getElementById('chat');
+  typingEl = document.createElement('div');
+  typingEl.className = 'msg jarvis';
+  typingEl.id = 'typing';
+  typingEl.innerHTML = `
+    <div class="msg-avatar">J</div>
+    <div class="msg-body">
+      <div class="msg-label">J.A.R.V.I.S.</div>
+      <div class="msg-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>
+    </div>`;
+  chat.appendChild(typingEl);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function removeTypingIndicator() {
+  document.getElementById('typing')?.remove();
+}
+
+function setArcState(state) {
+  const core = document.getElementById('arc-core');
+  core.className = 'arc-core' + (state !== 'idle' ? ` ${state}` : '');
+}
+
+function setStatus(text) {
+  document.getElementById('status-text').textContent = text;
+}
+
+function setMicState(active) {
+  const btn = document.getElementById('mic-btn');
+  btn.textContent = active ? '⏹' : '🎤';
+  btn.className = 'btn' + (active ? ' listening' : '');
+}
+
+function setVisualizer(active) {
+  document.getElementById('visualizer').className = active ? 'active' : '';
+}
+
+// ═══════════════════════════════════════════════════════
+// TEXT INPUT
+// ═══════════════════════════════════════════════════════
+function sendText() {
+  const input = document.getElementById('text-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  wakeRecognition && wakeRecognition.stop();
+  handleCommand(text);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('text-input').addEventListener('keypress', e => {
+    if (e.key === 'Enter') sendText();
+  });
+});
+
+function runChip(text) {
+  document.getElementById('text-input').value = text;
+  sendText();
+}
+
+// ═══════════════════════════════════════════════════════
+// BACKGROUND CANVAS — Arc reactor rings
+// ═══════════════════════════════════════════════════════
+(function() {
+  const canvas = document.getElementById('bg-canvas');
+  const ctx = canvas.getContext('2d');
+  let angle = 0;
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const cx = canvas.width / 2, cy = canvas.height * 0.38;
+
+    // Outer rings
+    for (let i = 3; i > 0; i--) {
+      const r = 80 + i * 70;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(0,207,255,${0.02 + i * 0.01})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Rotating dashes
+      const dashes = 6 + i * 2;
+      for (let d = 0; d < dashes; d++) {
+        const a = (d / dashes) * Math.PI * 2 + angle * (i % 2 === 0 ? 1 : -1);
+        const x1 = cx + Math.cos(a) * (r - 5), y1 = cy + Math.sin(a) * (r - 5);
+        const x2 = cx + Math.cos(a) * (r + 5), y2 = cy + Math.sin(a) * (r + 5);
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = `rgba(0,207,255,${0.06 + i * 0.02})`;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+    }
+
+    // Center glow
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 100);
+    grad.addColorStop(0, 'rgba(0,207,255,0.04)');
+    grad.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 100, 0, Math.PI * 2);
+    ctx.fill();
+
+    angle += 0.003;
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+</script>
+</body>
+</html>
