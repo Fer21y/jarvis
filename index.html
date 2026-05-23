@@ -387,7 +387,40 @@
 // ═══════════════════════════════════════════════════════
 // CONFIG — PON TU API KEY AQUÍ
 // ═══════════════════════════════════════════════════════
-const API_KEY = 'TU_GROQ_KEY_AQUI';
+const API_KEY = 'const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${API_KEY}`
+  },
+  body: JSON.stringify({
+    model: MODEL,
+    max_tokens: 1000,
+    messages: [
+      { role: 'system', content: JARVIS_SYSTEM },
+      ...messages.slice(-10)
+    ]
+  })
+});
+
+const data = await res.json();
+
+console.log("STATUS:", res.status);
+console.log("DATA:", data);
+
+if (!res.ok) {
+  throw new Error(
+    data.error?.message ||
+    data.message ||
+    JSON.stringify(data)
+  );
+}
+
+const raw = data.choices?.[0]?.message?.content;
+
+if (!raw) {
+  throw new Error('La API respondió sin contenido.');
+}';
 const MODEL = 'llama-3.3-70b-versatile';
 
 const JARVIS_SYSTEM = `You are J.A.R.V.I.S., Tony Stark's AI assistant.
