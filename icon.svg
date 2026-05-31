@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#001428"/>
+      <stop offset="100%" stop-color="#000812"/>
+    </radialGradient>
+    <radialGradient id="core" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="25%" stop-color="#7af6ff"/>
+      <stop offset="60%" stop-color="#00cfff"/>
+      <stop offset="100%" stop-color="#0066aa"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00cfff" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#00cfff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="blur1"><feGaussianBlur stdDeviation="8"/></filter>
+    <filter id="blur2"><feGaussianBlur stdDeviation="3"/></filter>
+  </defs>
+
+  <!-- Background rounded rect -->
+  <rect width="512" height="512" rx="90" fill="url(#bg)"/>
+
+  <!-- Outer glow -->
+  <circle cx="256" cy="256" r="230" fill="url(#glow)" filter="url(#blur1)" opacity="0.6"/>
+
+  <!-- Hex border -->
+  <circle cx="256" cy="256" r="228" fill="none" stroke="#00cfff" stroke-width="1.5" opacity="0.2"/>
+  <circle cx="256" cy="256" r="218" fill="none" stroke="#00cfff" stroke-width="0.8" opacity="0.12"/>
+
+  <!-- Outer ring with gaps -->
+  <circle cx="256" cy="256" r="200" fill="none" stroke="#00cfff" stroke-width="2.5"
+    stroke-dasharray="18 6" opacity="0.5"/>
+
+  <!-- Rotating tick ring -->
+  <g opacity="0.55">
+    <line x1="256" y1="56" x2="256" y2="80" stroke="#00cfff" stroke-width="3"/>
+    <line x1="256" y1="432" x2="256" y2="456" stroke="#00cfff" stroke-width="3"/>
+    <line x1="56" y1="256" x2="80" y2="256" stroke="#00cfff" stroke-width="3"/>
+    <line x1="432" y1="256" x2="456" y2="256" stroke="#00cfff" stroke-width="3"/>
+    <line x1="113" y1="113" x2="130" y2="130" stroke="#00cfff" stroke-width="2"/>
+    <line x1="382" y1="382" x2="399" y2="399" stroke="#00cfff" stroke-width="2"/>
+    <line x1="399" y1="113" x2="382" y2="130" stroke="#00cfff" stroke-width="2"/>
+    <line x1="130" y1="382" x2="113" y2="399" stroke="#00cfff" stroke-width="2"/>
+    <line x1="256" y1="56" x2="256" y2="68" stroke="#00cfff" stroke-width="1.5" opacity="0.4" transform="rotate(22.5 256 256)"/>
+    <line x1="256" y1="56" x2="256" y2="68" stroke="#00cfff" stroke-width="1.5" opacity="0.4" transform="rotate(45 256 256)"/>
+    <line x1="256" y1="56" x2="256" y2="68" stroke="#00cfff" stroke-width="1.5" opacity="0.4" transform="rotate(67.5 256 256)"/>
+    <line x1="256" y1="56" x2="256" y2="68" stroke="#00cfff" stroke-width="1.5" opacity="0.4" transform="rotate(112.5 256 256)"/>
+    <line x1="256" y1="56" x2="256" y2="68" stroke="#00cfff" stroke-width="1.5" opacity="0.4" transform="rotate(135 256 256)"/>
+    <line x1="256" y1="56" x2="256" y2="68" stroke="#00cfff" stroke-width="1.5" opacity="0.4" transform="rotate(157.5 256 256)"/>
+    <line x1="256" y1="56" x2="256" y2="68" stroke="#00cfff" stroke-width="1.5" opacity="0.4" transform="rotate(202.5 256 256)"/>
+    <line x1="256" y1="56" x2="256" y2="68" stroke="#00cfff" stroke-width="1.5" opacity="0.4" transform="rotate(225 256 256)"/>
+    <line x1="256" y1="56" x2="256" y2="68" stroke="#00cfff" stroke-width="1.5" opacity="0.4" transform="rotate(247.5 256 256)"/>
+    <line x1="256" y1="56" x2="256" y2="68" stroke="#00cfff" stroke-width="1.5" opacity="0.4" transform="rotate(292.5 256 256)"/>
+    <line x1="256" y1="56" x2="256" y2="68" stroke="#00cfff" stroke-width="1.5" opacity="0.4" transform="rotate(315 256 256)"/>
+    <line x1="256" y1="56" x2="256" y2="68" stroke="#00cfff" stroke-width="1.5" opacity="0.4" transform="rotate(337.5 256 256)"/>
+  </g>
+
+  <!-- Middle ring -->
+  <circle cx="256" cy="256" r="155" fill="none" stroke="#00cfff" stroke-width="1.5" opacity="0.3"/>
+
+  <!-- Inner ring segments -->
+  <circle cx="256" cy="256" r="110" fill="none" stroke="#00cfff" stroke-width="2"
+    stroke-dasharray="12 8" opacity="0.4"/>
+
+  <!-- Arc reactor body -->
+  <circle cx="256" cy="256" r="85" fill="#001020" opacity="0.9"/>
+  <circle cx="256" cy="256" r="85" fill="none" stroke="#00cfff" stroke-width="2" opacity="0.5"/>
+
+  <!-- Inner spinning ring (visual) -->
+  <circle cx="256" cy="256" r="68" fill="none" stroke="#00cfff" stroke-width="1.5"
+    stroke-dasharray="8 5" opacity="0.45"/>
+
+  <!-- Core glow layer -->
+  <circle cx="256" cy="256" r="52" fill="#00cfff" opacity="0.06" filter="url(#blur2)"/>
+  <circle cx="256" cy="256" r="40" fill="#00cfff" opacity="0.1" filter="url(#blur2)"/>
+
+  <!-- Core -->
+  <circle cx="256" cy="256" r="34" fill="url(#core)"/>
+  <circle cx="256" cy="256" r="22" fill="white" opacity="0.95"/>
+  <circle cx="256" cy="256" r="12" fill="white"/>
+
+  <!-- J letter -->
+  <text x="256" y="272" font-family="Georgia, 'Times New Roman', serif"
+    font-size="38" font-weight="bold" fill="#000c1a"
+    text-anchor="middle" dominant-baseline="middle">J</text>
+
+  <!-- Particle dots around rings -->
+  <g fill="#00cfff" opacity="0.6">
+    <circle cx="256" cy="101" r="2.5"/>
+    <circle cx="355" cy="157" r="2"/>
+    <circle cx="355" cy="355" r="2.5"/>
+    <circle cx="256" cy="411" r="2"/>
+    <circle cx="157" cy="355" r="2.5"/>
+    <circle cx="157" cy="157" r="2"/>
+    <circle cx="411" cy="256" r="1.8"/>
+    <circle cx="101" cy="256" r="1.8"/>
+  </g>
+
+  <!-- Small glow particles -->
+  <g fill="#00ff88" opacity="0.4">
+    <circle cx="310" cy="120" r="1.5"/>
+    <circle cx="392" cy="200" r="1.2"/>
+    <circle cx="392" cy="312" r="1.5"/>
+    <circle cx="202" cy="120" r="1.2"/>
+    <circle cx="120" cy="310" r="1.5"/>
+    <circle cx="120" cy="200" r="1.2"/>
+  </g>
+
+  <!-- JARVIS text at bottom -->
+  <text x="256" y="478" font-family="'Arial', sans-serif" font-size="24"
+    font-weight="bold" fill="#00cfff" text-anchor="middle" opacity="0.55"
+    letter-spacing="10">JARVIS</text>
+</svg>
